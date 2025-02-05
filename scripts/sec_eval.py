@@ -269,7 +269,7 @@ def eval_vul(args, evaler, controls, vul_types):
     
     # There are 9 CWE categories, and from each cateogry examples are included in the 
     # demonstration dataset. The number of included examples can be experimented with.
-    max_demonstration = 0
+    max_demonstration = 10
     total_demonstration = 0
     excluded_demonstration = 0
     for file_path in json_files:
@@ -289,7 +289,7 @@ def eval_vul(args, evaler, controls, vul_types):
 
                     if num_demonstration > max_demonstration:
                         break 
-                    
+                    num_demonstration += 1
                     total_demonstration += 1
                     demonstration_set.append(secure_code)
                         
