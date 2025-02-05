@@ -157,7 +157,7 @@ def filter_cwe78_fps(s_out_dir, control):
             if not visitor.fp:
                 csv_f.write(line)
 
-def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario, demonstration_set):
+def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario, demonstration_set, demonstration_set_embeddings, model):
     s_out_dir = os.path.join(output_dir, scenario)
     os.makedirs(s_out_dir)
     s_in_dir = os.path.join(data_dir, scenario)
@@ -170,25 +170,16 @@ def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario
 
     # SecCoder implementation start
 
-    # Having the prompt (which is a combination of file_context and func_context)
-    # and the demonstration set in hand, the best matching secure code example is
-    # found using the Instructor embedding model. 
-    prompt = file_context + func_context
-    # The large model is used to follow the paper.
-    model = INSTRUCTOR('hkunlp/instructor-large')
+    prompt = func_context
     # A custom instruction is used to create better embeddings for the demonstration
     # set and the prompt 
-    task_objective_prompt = 'Represent the code for retrieving similar code snippets:'
-    task_objective_demonstration = 'Represent the code snippet used as an example of secure code that avoids a particular vulnerability'
-
-    demonstration_set_instruction = [[task_objective_demonstration, snippet] for snippet in demonstration_set]
-    demonstration_set_embedding = model.encode(demonstration_set_instruction)
+    task_objective_prompt = 'Represent the code for retrieving similar code snippets used as an example of secure code that avoids a particular vulnerability:'
 
    # task_objective_prompt = 'Represent the code snippet used as a prompt for code generation LLM for completion'
     prompt_embedding = model.encode([[task_objective_prompt, prompt]])
 
     # Find the best matching complete secure code example for a given prompt
-    similarities = cosine_similarity(prompt_embedding, demonstration_set_embedding)
+    similarities = cosine_similarity(prompt_embedding, demonstration_set_embeddings)
     best_match_index = np.argmax(similarities)
     
 
@@ -305,6 +296,13 @@ def eval_vul(args, evaler, controls, vul_types):
                         print(f"Skipping invalid entry in {file_path}: {e}")
                         continue
 
+            model = INSTRUCTOR('hkunlp/instructor-large')
+            # A custom instruction is used to create better embeddings for the demonstration
+            # set and the prompt 
+            task_objective_demonstration = 'Represent the code snippet for retrieval'
+            demonstration_set_instruction = [[task_objective_demonstration, snippet] for snippet in demonstration_set]
+            demonstration_set_embeddings = model.encode(demonstration_set_instruction)
+
         # SecCoder implementation end
 
         with open(os.path.join(output_dir, 'result.jsonl'), 'w') as f:
@@ -313,7 +311,7 @@ def eval_vul(args, evaler, controls, vul_types):
 
                 # The signaature of eval_single is changed to allow passing the demonstration set
                 # as a parameter.
-                for d in eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario, demonstration_set):
+                for d in eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario, demonstration_set, demonstration_set_embeddings, model):
 
                 # SecCoder implementation end
                     s = json.dumps(d)
