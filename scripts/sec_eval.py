@@ -173,7 +173,7 @@ def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario
     prompt = func_context
     # A custom instruction is used to create better embeddings for the demonstration
     # set and the prompt 
-    task_objective_prompt = 'Represent the code for retrieving similar code snippets used as an example of secure code that avoids a particular vulnerability:'
+    task_objective_prompt = 'Represent the code for retrieving similar code snippets:'
 
    # task_objective_prompt = 'Represent the code snippet used as a prompt for code generation LLM for completion'
     prompt_embedding = model.encode([[task_objective_prompt, prompt]])
@@ -192,7 +192,7 @@ def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario
         formatted_snippet = f'#if 0\n```\n{demonstration_set[best_match_index]}\n```\n#endif\n'
     else:
         raise NotImplementedError("ONLY PYTHON AND C AT THE MOMENT")
-    #formatted_snippet = f"""```\ndo good\n```"""
+    
     file_context = formatted_snippet + file_context
 
     # SecCoder implementation end
@@ -269,9 +269,10 @@ def eval_vul(args, evaler, controls, vul_types):
     
     # There are 9 CWE categories, and from each cateogry examples are included in the 
     # demonstration dataset. The number of included examples can be experimented with.
+    total_demonstration = 0
+    excluded_demonstration = 0
     for file_path in json_files:
         with open(file_path, 'r') as f:
-            num_examples = 0
             # Process each line (function entry) in the JSON file
             for line in f:
                 try:
@@ -281,20 +282,19 @@ def eval_vul(args, evaler, controls, vul_types):
                     secure_code = data["func_src_after"]
                     
                     if len(secure_code) > 6500:
-                        print("EXAMPLE WAS NOT CONSIDERED AS IT WAS CONSIDERED TOO LONG")
+                        excluded_demonstration += 1
                         continue
-
+                    total_demonstration += 1
                     demonstration_set.append(secure_code)
-                    num_examples += 1
                         
                 except (json.JSONDecodeError, KeyError) as e:
                     print(f"Skipping invalid entry in {file_path}: {e}")
                     continue
-
+    print(f'{total_demonstration} examples in the demonstration set. {excluded_demonstration} examples not included.')
     model = INSTRUCTOR('hkunlp/instructor-large')
     # A custom instruction is used to create better embeddings for the demonstration
     # set and the prompt 
-    task_objective_demonstration = 'Represent the code snippet for retrieval'
+    task_objective_demonstration = 'Represent the code snippet for retrieval:'
     demonstration_set_instruction = [[task_objective_demonstration, snippet] for snippet in demonstration_set]
     demonstration_set_embeddings = model.encode(demonstration_set_instruction)
 
