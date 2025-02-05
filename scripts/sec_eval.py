@@ -257,60 +257,59 @@ def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario
         yield d
 
 def eval_vul(args, evaler, controls, vul_types):
+    # SecCoder implementation begin
+
+    # Create a demonstration set by parsing the SVEN training dataset and extracting only 
+    # secure implementations.
+    cwe_examples_folder = "../data_train_val/train"
+    demonstration_set = []
+
+    # Get all JSON files in the folder
+    json_files = glob(os.path.join(cwe_examples_folder, "*.jsonl"))
+    
+    # There are 9 CWE categories, and from each cateogry examples are included in the 
+    # demonstration dataset. The number of included examples can be experimented with.
+    for file_path in json_files:
+        with open(file_path, 'r') as f:
+            num_examples = 0
+            # Process each line (function entry) in the JSON file
+            for line in f:
+                try:
+                    data = json.loads(line.strip())
+                    # Fields like 'func_name', 'func_src_before', etc. are not needed
+                    # since we are only interested in including complete secure examples
+                    secure_code = data["func_src_after"]
+                    
+                    if len(secure_code) > 6500:
+                        print("EXAMPLE WAS NOT CONSIDERED AS IT WAS CONSIDERED TOO LONG")
+                        continue
+
+                    demonstration_set.append(secure_code)
+                    num_examples += 1
+                        
+                except (json.JSONDecodeError, KeyError) as e:
+                    print(f"Skipping invalid entry in {file_path}: {e}")
+                    continue
+
+    model = INSTRUCTOR('hkunlp/instructor-large')
+    # A custom instruction is used to create better embeddings for the demonstration
+    # set and the prompt 
+    task_objective_demonstration = 'Represent the code snippet for retrieval'
+    demonstration_set_instruction = [[task_objective_demonstration, snippet] for snippet in demonstration_set]
+    demonstration_set_embeddings = model.encode(demonstration_set_instruction)
+
+    # SecCoder implementation end
+
     for vul_type in vul_types:
         data_dir = os.path.join(args.data_dir, vul_type)
         output_dir = os.path.join(args.output_dir, vul_type)
         os.makedirs(output_dir)
 
-        # SecCoder implementation begin
-
-        # Create a demonstration set by parsing the SVEN training dataset and extracting only 
-        # secure implementations.
-        cwe_examples_folder = "../data_train_val/train"
-        demonstration_set = []
-    
-        # Get all JSON files in the folder
-        json_files = glob(os.path.join(cwe_examples_folder, "*.jsonl"))
-        
-        # There are 9 CWE categories, and from each cateogry 10 examples are included in the 
-        # demonstration dataset. The number of included examples can be experimented with.
-        max_per_file = 10
-        for file_path in json_files:
-            with open(file_path, 'r') as f:
-                num_examples = 0
-                # Process each line (function entry) in the JSON file
-                for line in f:
-                    try:
-                        data = json.loads(line.strip())
-                        # Fields like 'func_name', 'func_src_before', etc. are not needed
-                        # since we are only interested in including complete secure examples
-                        secure_code = data["func_src_after"]
-                        #print(data, secure_code)
-                        demonstration_set.append(secure_code)
-                        num_examples += 1
-                        # Stop when we have enough from this file
-                        if num_examples >= max_per_file:
-                            break
-                            
-                    except (json.JSONDecodeError, KeyError) as e:
-                        print(f"Skipping invalid entry in {file_path}: {e}")
-                        continue
-
-            model = INSTRUCTOR('hkunlp/instructor-large')
-            # A custom instruction is used to create better embeddings for the demonstration
-            # set and the prompt 
-            task_objective_demonstration = 'Represent the code snippet for retrieval'
-            demonstration_set_instruction = [[task_objective_demonstration, snippet] for snippet in demonstration_set]
-            demonstration_set_embeddings = model.encode(demonstration_set_instruction)
-
-        # SecCoder implementation end
-
         with open(os.path.join(output_dir, 'result.jsonl'), 'w') as f:
             for scenario in list(sorted(os.listdir(data_dir))):
                 # SecCoder implementation start
 
-                # The signaature of eval_single is changed to allow passing the demonstration set
-                # as a parameter.
+                # The signature of eval_single is changed to allow additional arguments: demonstration_set, demonstration_set_embeddings, model
                 for d in eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario, demonstration_set, demonstration_set_embeddings, model):
 
                 # SecCoder implementation end
