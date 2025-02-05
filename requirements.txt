@@ -1,3 +1,4 @@
+python==3.10
 --extra-index-url https://download.pytorch.org/whl/cu117
 torch==1.13.1+cu117
 transformers==4.25.0
@@ -8,3 +9,6 @@ scipy
 pyyaml
 yamlize
 libcst
+instructorembedding
+sentence-transformers==2.2.2
+huggingface_hub==0.25.1
