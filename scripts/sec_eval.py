@@ -297,7 +297,7 @@ def eval_vul(args, evaler, controls, vul_types):
                     print(f"Skipping invalid entry in {file_path}: {e}")
                     continue
     print(f'{total_demonstration} examples in the demonstration set. {excluded_demonstration} examples not included.')
-    model = INSTRUCTOR('hkunlp/instructor-xl')
+    model = INSTRUCTOR('hkunlp/instructor-large')
     # A custom instruction is used to create better embeddings for the demonstration
     # set and the prompt 
     task_objective_demonstration = 'Represent the code snippet for retrieval:'
