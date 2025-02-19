@@ -283,7 +283,7 @@ def eval_vul(args, evaler, controls, vul_types):
                     # since we are only interested in including complete secure examples
                     secure_code = data["func_src_after"]
                     
-                    if len(secure_code) > 6500:
+                    if len(secure_code) > 6000:
                         excluded_demonstration += 1
                         continue
 
