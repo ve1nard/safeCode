@@ -13,6 +13,13 @@ from safecoder.utils import set_logging, set_seed, get_cp_args
 from safecoder.constants import PRETRAINED_MODELS, CHAT_MODELS, CWES_TRAINED, NEW_EVALS, NOT_TRAINED
 from safecoder.evaler import EvalerCodePLM, EvalerCodeFT, EvalerOpenAI, EvalerChat
 
+###
+from glob import glob
+from InstructorEmbedding import INSTRUCTOR
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+###
+
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output_name', type=str, required=True)
@@ -139,7 +146,7 @@ def filter_cwe78_fps(src_dir, csv_path):
             if not visitor.fp:
                 csv_f.write(line)
 
-def eval_scenario(args, evaler, vul_type, scenario):
+def eval_scenario(args, evaler, vul_type, scenario, demonstration_set, demonstration_set_embeddings, model):
     data_dir = os.path.join(args.data_dir, vul_type, scenario)
     output_dir = os.path.join(args.output_dir, vul_type, scenario)
     os.makedirs(output_dir)
@@ -154,6 +161,34 @@ def eval_scenario(args, evaler, vul_type, scenario):
         file_context = f.read()
     with open(os.path.join(data_dir, 'func_context.'+info['language'])) as f:
         func_context = f.read()
+
+    # SecCoder implementation start
+    prompt = func_context
+    # A custom instruction is used to create better embeddings for the demonstration
+    # set and the prompt 
+    task_objective_prompt = 'Represent the code for retrieving similar code snippets:'
+
+   # task_objective_prompt = 'Represent the code snippet used as a prompt for code generation LLM for completion'
+    prompt_embedding = model.encode([[task_objective_prompt, prompt]])
+
+    # Find the best matching complete secure code example for a given prompt
+    similarities = cosine_similarity(prompt_embedding, demonstration_set_embeddings)
+    best_match_index = np.argmax(similarities)
+
+    # Insert the selected code snippet at the beginning of the prompt before any imports.
+    # To do this, the code is inserted before file_context using the template specified in
+    # the paper.
+    if info['language'] == 'py':
+        formatted_snippet = f'\"\"\"\n```\n{demonstration_set[best_match_index]}\n```\n\"\"\"\n'
+    elif info['language'] == 'c':
+        formatted_snippet = f'#if 0\n```\n{demonstration_set[best_match_index]}\n```\n#endif\n'
+    else:
+        formatted_snippet = ""
+
+    file_context = formatted_snippet + file_context
+
+    # SecCoder implementation end
+
     output_srcs, non_parsed_srcs = evaler.sample(file_context, func_context, info)
 
     for srcs, name in [(output_srcs, 'output_srcs'), (non_parsed_srcs, 'non_parsed_srcs')]:
@@ -210,6 +245,45 @@ def eval_scenario(args, evaler, vul_type, scenario):
     return d
 
 def eval_all(args, evaler, vul_types):
+    
+    # SecCoder implementation begin
+
+    # Create a demonstration set by parsing the SVEN training dataset and extracting only 
+    # secure implementations.
+    cwe_examples_folder = "../data_train_val/train"
+    demonstration_set = []
+
+    # Get all JSON files in the folder
+    file_names = ["sec-desc.jsonl", "sec-new-desc.jsonl"]
+    json_files = [os.path.join(cwe_examples_folder, f) for f in file_names]
+    
+    # There are 9 CWE categories, and from each cateogry examples are included in the 
+    # demonstration dataset. The number of included examples can be experimented with.
+    for file_path in json_files:
+        with open(file_path, 'r') as f:
+            # Process each line (function entry) in the JSON file
+            for line in f:
+                try:
+                    data = json.loads(line.strip())
+                    # Fields like 'func_name', 'func_src_before', etc. are not needed
+                    # since we are only interested in including complete secure examples
+                    secure_code = data["func_src_after"]
+                    demonstration_set.append(secure_code)
+                        
+                except (json.JSONDecodeError, KeyError) as e:
+                    print(f"Skipping invalid entry in {file_path}: {e}")
+                    continue
+
+    model = INSTRUCTOR('hkunlp/instructor-xl')
+    # A custom instruction is used to create better embeddings for the demonstration
+    # set and the prompt 
+    task_objective_demonstration = 'Represent the code snippet for retrieval:'
+    demonstration_set_instruction = [[task_objective_demonstration, snippet] for snippet in demonstration_set]
+    demonstration_set_embeddings = model.encode(demonstration_set_instruction)
+
+    # SecCoder implementation end
+
+
     for vul_type in vul_types:
         output_dir = os.path.join(args.output_dir, vul_type)
         data_dir = os.path.join(args.data_dir, vul_type)
@@ -217,7 +291,7 @@ def eval_all(args, evaler, vul_types):
 
         with open(os.path.join(output_dir, 'result.jsonl'), 'w') as f:
             for scenario in list(sorted(os.listdir(data_dir))):
-                d = eval_scenario(args, evaler, vul_type, scenario)
+                d = eval_scenario(args, evaler, vul_type, scenario, demonstration_set, demonstration_set_embeddings, model)
                 s = json.dumps(d)
                 args.logger.info(s)
                 f.write(s+'\n')
