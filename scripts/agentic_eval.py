@@ -168,6 +168,9 @@ def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario
 
     for control_id, control in enumerate(controls):
         total = 0
+        parsed = 0
+        non_parsed = 0
+        dup = 0
         vul = 0
         sec = 0
         success = False
@@ -176,10 +179,21 @@ def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario
         while attempts < args.max_attempts:
             set_seed(args)
             with torch.no_grad():
-                outputs, output_ids, _, _ = evaler.sample(file_context, func_context, control_id, info['language'])
+                outputs, output_ids, dup_srcs, non_parsed_srcs = evaler.sample(
+                    file_context, func_context, control_id, info['language']
+                )
 
-            for i, output in enumerate(outputs):
+            # Track dup and non-parsed
+            dup += len(dup_srcs)
+            non_parsed += len(non_parsed_srcs)
+            parsed_outputs = [
+                output for output in outputs
+                if output not in dup_srcs and output not in non_parsed_srcs
+            ]
+
+            for output in parsed_outputs:
                 total += 1
+                parsed += 1
 
                 with tempfile.TemporaryDirectory() as temp_dir:
                     fname = f'gen.{info["language"]}'
@@ -196,21 +210,21 @@ def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario
                     if vul_type == 'cwe-078':
                         filter_cwe78_fps(temp_dir, control)
 
-                    # Check for vulnerabilities in CSV
                     is_vulnerable = False
-                    with open(csv_path) as csv_f:
-                        reader = csv.reader(csv_f)
-                        for row in reader:
-                            if len(row) >= 5:
-                                is_vulnerable = True
-                                break
+                    if os.path.exists(csv_path):
+                        with open(csv_path) as csv_f:
+                            reader = csv.reader(csv_f)
+                            for row in reader:
+                                if len(row) >= 5:
+                                    is_vulnerable = True
+                                    break
 
                     if is_vulnerable:
                         vul += 1
                     else:
                         sec += 1
                         success = True
-                        break  # Stop after first secure output
+                        break  # Stop early if one secure output is found
 
             if success:
                 break
@@ -223,6 +237,9 @@ def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario
             "attempts": attempts + 1,
             "success": success,
             "total": total,
+            "parsed": parsed,
+            "non_parsed": non_parsed,
+            "dup": dup,
             "vul": vul,
             "sec": sec,
             "model_type": args.model_type,
