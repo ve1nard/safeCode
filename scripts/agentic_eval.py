@@ -149,14 +149,6 @@ def filter_cwe78_fps(s_out_dir, control):
             if not visitor.fp:
                 csv_f.write(line)
 
-import tempfile
-import shutil
-import csv
-import json
-import os
-import torch
-from collections import OrderedDict
-
 def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario):
     s_in_dir = os.path.join(data_dir, scenario)
     with open(os.path.join(s_in_dir, 'info.json')) as f:
@@ -167,6 +159,16 @@ def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario
         func_context = f.read()
 
     for control_id, control in enumerate(controls):
+        s_out_dir = os.path.join(output_dir, scenario)
+        os.makedirs(s_out_dir, exist_ok=True)
+
+        out_src_dir = os.path.join(s_out_dir, f'{control}_output')
+        non_parsed_dir = os.path.join(s_out_dir, f'{control}_non_parsed')
+        dup_dir = os.path.join(s_out_dir, f'{control}_dup')
+        os.makedirs(out_src_dir, exist_ok=True)
+        os.makedirs(non_parsed_dir, exist_ok=True)
+        os.makedirs(dup_dir, exist_ok=True)
+
         total = 0
         parsed = 0
         non_parsed = 0
@@ -175,6 +177,7 @@ def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario
         sec = 0
         success = False
         attempts = 0
+        output_ids_j = OrderedDict()
 
         while attempts < args.max_attempts:
             set_seed(args)
@@ -183,52 +186,67 @@ def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario
                     file_context, func_context, control_id, info['language']
                 )
 
-            # Track dup and non-parsed
-            dup += len(dup_srcs)
-            non_parsed += len(non_parsed_srcs)
-            parsed_outputs = [
-                output for output in outputs
-                if output not in dup_srcs and output not in non_parsed_srcs
-            ]
-
-            for output in parsed_outputs:
+            for i, (output, output_id) in enumerate(zip(outputs, output_ids)):
+                fname = f'{str(total).zfill(2)}.{info["language"]}'
                 total += 1
-                parsed += 1
 
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    fname = f'gen.{info["language"]}'
-                    src_path = os.path.join(temp_dir, fname)
-                    with open(src_path, 'w') as f:
+                # Classify output
+                if output in non_parsed_srcs:
+                    non_parsed += 1
+                    with open(os.path.join(non_parsed_dir, fname), 'w') as f:
                         f.write(output)
+                    continue
+                elif output in dup_srcs:
+                    dup += 1
+                    with open(os.path.join(dup_dir, fname), 'w') as f:
+                        f.write(output)
+                    continue
 
-                    db_path = os.path.join(temp_dir, 'codeql_db')
-                    csv_path = os.path.join(temp_dir, 'codeql_out.csv')
+                parsed += 1
+                output_ids_j[fname] = output_id
+                out_path = os.path.join(out_src_dir, fname)
+                with open(out_path, 'w') as f:
+                    f.write(output)
 
-                    codeql_create_db(info, temp_dir, db_path)
-                    codeql_analyze(info, db_path, csv_path)
+                # Optional for C code
+                if info['language'] == 'c':
+                    shutil.copy2('Makefile', out_src_dir)
 
-                    if vul_type == 'cwe-078':
-                        filter_cwe78_fps(temp_dir, control)
+                # Analyze with CodeQL
+                db_path = os.path.join(s_out_dir, f'{control}_codeql_db')
+                csv_path = os.path.join(s_out_dir, f'{control}_codeql.csv')
 
-                    is_vulnerable = False
-                    if os.path.exists(csv_path):
-                        with open(csv_path) as csv_f:
-                            reader = csv.reader(csv_f)
-                            for row in reader:
-                                if len(row) >= 5:
+                codeql_create_db(info, out_src_dir, db_path)
+                codeql_analyze(info, db_path, csv_path)
+
+                if vul_type == 'cwe-078':
+                    filter_cwe78_fps(s_out_dir, control)
+
+                is_vulnerable = False
+                if os.path.exists(csv_path):
+                    with open(csv_path) as csv_f:
+                        reader = csv.reader(csv_f)
+                        for row in reader:
+                            if len(row) >= 5:
+                                out_src_fname = row[-5].replace('/', '')
+                                if out_src_fname == fname:
                                     is_vulnerable = True
                                     break
 
-                    if is_vulnerable:
-                        vul += 1
-                    else:
-                        sec += 1
-                        success = True
-                        break  # Stop early if one secure output is found
+                if is_vulnerable:
+                    vul += 1
+                else:
+                    sec += 1
+                    success = True
+                    break  # Found first secure output → stop here
 
             if success:
                 break
             attempts += 1
+
+        # Save output IDs
+        with open(os.path.join(s_out_dir, f'{control}_output_ids.json'), 'w') as f:
+            json.dump(output_ids_j, f, indent=2)
 
         yield {
             "vul_type": vul_type,
@@ -246,6 +264,7 @@ def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario
             "model_dir": args.model_dir,
             "temp": args.temp
         }
+
 
 def eval_vul(args, evaler, controls, vul_types):
     for vul_type in vul_types:
