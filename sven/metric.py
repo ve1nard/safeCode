@@ -55,7 +55,7 @@ def confidence_interval(data, confidence=0.95):
     return m-h, m+h
 
 class SecEval:
-    KEYS = ['sec_rate', 'sec', 'total', 'dup', 'non_parsed']
+    KEYS = ['total', 'attempts', 'sec','sec_rate', 'total', 'dup', 'non_parsed']
 
     def __init__(self, eval_dir, eval_type, vul_type, split):
         if vul_type is not None:
