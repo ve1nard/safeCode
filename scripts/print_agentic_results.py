@@ -14,6 +14,8 @@ def load_results(root_dir):
                 for line in f:
                     try:
                         result = json.loads(line)
+                        if result.get('control') == 'vul':
+                            continue 
                         filtered = {k: result.get(k, '') for k in CORE_KEYS}
                         results.append(filtered)
                     except json.JSONDecodeError as e:
