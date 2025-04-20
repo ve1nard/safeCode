@@ -74,7 +74,7 @@ class EvalerBase:
                 output_srcs.append(output_src)
                 output_ids.append((gen_output[i][:input_ids_len].tolist(), gen_output[i][input_ids_len:input_ids_len+completion_len].tolist()))
 
-        return output_srcs, output_ids, dup_srcs, non_parsed_srcs
+        return output_srcs, output_ids, dup_srcs, non_parsed_srcs, int(tokens.numel()) 
 
 class LMEvaler(EvalerBase):
     def __init__(self, args):
