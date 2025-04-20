@@ -177,15 +177,16 @@ def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario
         sec = 0
         success = False
         attempts = 0
+        num_tokens = 0
         output_ids_j = OrderedDict()
 
         while attempts < args.max_attempts:
             set_seed(args)
             with torch.no_grad():
-                outputs, output_ids, dup_srcs, non_parsed_srcs = evaler.sample(
+                outputs, output_ids, dup_srcs, non_parsed_srcs, new_tokens = evaler.sample(
                     file_context, func_context, control_id, info['language']
                 )
-
+                num_tokens += new_tokens
             for i, (output, output_id) in enumerate(zip(outputs, output_ids)):
                 fname = f'{str(total).zfill(2)}.{info["language"]}'
                 total += 1
@@ -255,6 +256,7 @@ def eval_single(args, evaler, controls, output_dir, data_dir, vul_type, scenario
             "attempts": attempts + 1,
             "success": success,
             "total": total,
+            "tokens": num_tokens,
             "parsed": parsed,
             "non_parsed": non_parsed,
             "dup": dup,
