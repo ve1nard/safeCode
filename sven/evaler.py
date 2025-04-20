@@ -55,6 +55,7 @@ class EvalerBase:
 
     def process_completions(self, input_src, input_ids_len, gen_output, lang):
         tokens = gen_output[:, input_ids_len:, ...]
+        comp_t = (tokens != self.tokenizer.pad_token_id).sum().item()
         completions = self.tokenizer.batch_decode(tokens)
 
         output_srcs, output_ids = [], []
@@ -74,7 +75,7 @@ class EvalerBase:
                 output_srcs.append(output_src)
                 output_ids.append((gen_output[i][:input_ids_len].tolist(), gen_output[i][input_ids_len:input_ids_len+completion_len].tolist()))
 
-        return output_srcs, output_ids, dup_srcs, non_parsed_srcs, int(tokens.numel()) 
+        return output_srcs, output_ids, dup_srcs, non_parsed_srcs, comp_t
 
 class LMEvaler(EvalerBase):
     def __init__(self, args):
