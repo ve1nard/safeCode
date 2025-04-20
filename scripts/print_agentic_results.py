@@ -3,7 +3,7 @@ import json
 import argparse
 from tabulate import tabulate
 
-CORE_KEYS = ['vul_type', 'scenario', 'control', 'success', 'total', 'attempts']
+CORE_KEYS = ['vul_type', 'scenario', 'control', 'success', 'total', 'attempts', 'tokens']
 
 def load_results(root_dir):
     results = []
