@@ -1,0 +1,48 @@
+[2024-10-28 07:51:33] This is codeql database analyze ../experiments/sec_eval/sec-eval-2b-prefix/trained/cwe-022/2-py/vul_codeql_db ../data_eval/trained/cwe-022/2-py/cwe-22_TarSlip.ql --quiet --format=csv --output=../experiments/sec_eval/sec-eval-2b-prefix/trained/cwe-022/2-py/vul_codeql.csv --additional-packs=/home/ff2137/.codeql/packages/codeql/
+[2024-10-28 07:51:33] Log file was started late.
+[2024-10-28 07:51:33] [PROGRESS] database analyze> Running queries.
+[2024-10-28 07:51:33] Running plumbing command: codeql database run-queries --evaluator-log-level=5 --insecurely-execute-ml-model-checksums= --warnings=show --additional-packs=/home/ff2137/.codeql/packages/codeql --qlconfig-file=/scratch/ff2137/sven/scripts/qlconfig.yml --no-rerun -- /scratch/ff2137/sven/experiments/sec_eval/sec-eval-2b-prefix/trained/cwe-022/2-py/vul_codeql_db ../data_eval/trained/cwe-022/2-py/cwe-22_TarSlip.ql
+[2024-10-28 07:51:33] Calling plumbing command: codeql resolve ram --format=json
+[2024-10-28 07:51:33] Plumbing command codeql resolve ram completed:
+                      [
+                        "-J-Xmx3959M",
+                        "--off-heap-ram=3959"
+                      ]
+[2024-10-28 07:51:33] Spawning plumbing command: execute queries -J-Xmx3959M --off-heap-ram=3959 --verbosity=warnings --logdir=/scratch/ff2137/sven/experiments/sec_eval/sec-eval-2b-prefix/trained/cwe-022/2-py/vul_codeql_db/log --evaluator-log-level=5 --insecurely-execute-ml-model-checksums= --warnings=show --additional-packs=/home/ff2137/.codeql/packages/codeql --qlconfig-file=/scratch/ff2137/sven/scripts/qlconfig.yml --no-rerun --output=/scratch/ff2137/sven/experiments/sec_eval/sec-eval-2b-prefix/trained/cwe-022/2-py/vul_codeql_db/results -- /scratch/ff2137/sven/experiments/sec_eval/sec-eval-2b-prefix/trained/cwe-022/2-py/vul_codeql_db/db-python ../data_eval/trained/cwe-022/2-py/cwe-22_TarSlip.ql
+[2024-10-28 07:53:24] Plumbing command codeql execute queries terminated with status 0.
+[2024-10-28 07:53:24] Plumbing command codeql database run-queries completed with status 0.
+[2024-10-28 07:53:24] [PROGRESS] database analyze> Interpreting results.
+[2024-10-28 07:53:24] Running plumbing command: codeql database interpret-results --format=csv -o=/scratch/ff2137/sven/experiments/sec_eval/sec-eval-2b-prefix/trained/cwe-022/2-py/vul_codeql.csv --max-paths=4 --csv-location-format=line-column --print-diagnostics-summary --print-metrics-summary --additional-packs=/home/ff2137/.codeql/packages/codeql --qlconfig-file=/scratch/ff2137/sven/scripts/qlconfig.yml -- /scratch/ff2137/sven/experiments/sec_eval/sec-eval-2b-prefix/trained/cwe-022/2-py/vul_codeql_db ../data_eval/trained/cwe-022/2-py/cwe-22_TarSlip.ql
+[2024-10-28 07:53:24] Calling plumbing command: codeql resolve queries --additional-packs=/home/ff2137/.codeql/packages/codeql --qlconfig-file=/scratch/ff2137/sven/scripts/qlconfig.yml --format=json -- ../data_eval/trained/cwe-022/2-py/cwe-22_TarSlip.ql
+[2024-10-28 07:53:24] [PROGRESS] resolve queries> Recording pack reference cwe22 at /scratch/ff2137/sven/data_eval/trained/cwe-022/2-py.
+[2024-10-28 07:53:24] Plumbing command codeql resolve queries completed:
+                      [
+                        "/scratch/ff2137/sven/scripts/../data_eval/trained/cwe-022/2-py/cwe-22_TarSlip.ql"
+                      ]
+[2024-10-28 07:53:24] [DETAILS] database interpret-results> Scanning for [codeql-pack.yml, qlpack.yml] from /home/ff2137/.codeql/packages/codeql/
+[2024-10-28 07:53:25] [DETAILS] database interpret-results> Scanning for [codeql-pack.yml, qlpack.yml] from /scratch/ff2137/sven/codeql/.codeqlmanifest.json
+[2024-10-28 07:53:25] [DETAILS] database interpret-results> Scanning for [codeql-pack.yml, qlpack.yml] from /scratch/ff2137/sven/
+[2024-10-28 07:53:25] [DETAILS] database interpret-results> Not scanning from /scratch/ff2137/sven/codeql which is already done.
+[2024-10-28 07:53:25] [PROGRESS] database interpret-results> Interpreting /scratch/ff2137/sven/scripts/../data_eval/trained/cwe-022/2-py/cwe-22_TarSlip.ql...
+[2024-10-28 07:53:25] Calling plumbing command: codeql resolve library-path --query=/scratch/ff2137/sven/scripts/../data_eval/trained/cwe-022/2-py/cwe-22_TarSlip.ql --full-library-path=none --dbscheme=none --format=json
+[2024-10-28 07:53:25] [DETAILS] resolve library-path> Resolving query at normalized path /scratch/ff2137/sven/data_eval/trained/cwe-022/2-py/cwe-22_TarSlip.ql.
+[2024-10-28 07:53:25] [DETAILS] resolve library-path> Found enclosing pack 'cwe22' at /scratch/ff2137/sven/data_eval/trained/cwe-022/2-py.
+[2024-10-28 07:53:25] [DETAILS] resolve library-path> Adding compilation cache at /scratch/ff2137/sven/data_eval/trained/cwe-022/2-py/.cache.
+[2024-10-28 07:53:25] [DETAILS] resolve library-path> Dbscheme was explicitly overridden as /scratch/ff2137/sven/scripts/none
+[2024-10-28 07:53:25] [DETAILS] resolve library-path> Library path was overridden on command line.
+[2024-10-28 07:53:25] Plumbing command codeql resolve library-path completed:
+                      {
+                        "libraryPath" : [
+                          "/scratch/ff2137/sven/scripts/none"
+                        ],
+                        "dbscheme" : "/scratch/ff2137/sven/scripts/none",
+                        "compilationCache" : [
+                          "/scratch/ff2137/sven/data_eval/trained/cwe-022/2-py/.cache"
+                        ],
+                        "relativeName" : "cwe22/cwe-22_TarSlip.ql",
+                        "qlPackName" : "cwe22"
+                      }
+[2024-10-28 07:53:25] [DETAILS] database interpret-results>  ... found results file at /scratch/ff2137/sven/experiments/sec_eval/sec-eval-2b-prefix/trained/cwe-022/2-py/vul_codeql_db/results/cwe22/cwe-22_TarSlip.bqrs.
+[2024-10-28 07:53:25] [DETAILS] database interpret-results> Interpreted problem query "Check for CWE-22 in codeql-eg-TarSlip" (custom-cpp/cwe-22-codeql-eg-tarslip) at path /scratch/ff2137/sven/scripts/../data_eval/trained/cwe-022/2-py/cwe-22_TarSlip.ql.
+[2024-10-28 07:53:25] Plumbing command codeql database interpret-results completed.
+[2024-10-28 07:53:25] Terminating normally.

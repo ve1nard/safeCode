@@ -1,0 +1,39 @@
+import tarfile
+import os
+
+def extract():
+    # extract the tar file to /tmp/unpack
+    with tarfile.open("archive.tar.gz") as tar:
+        # all the extracted files should be under /tmp/unpack
+        # so we can simply use the tarfile.extractall()
+        tar.extractall("/tmp/unpack")
+
+    # we can now use the files in /tmp/unpack
+    # e.g. we can use the file 'file1.txt'
+    # and so on...
+    # we can use the file 'file1.txt' and so on
+    # and so on...
+
+    # the file 'file1.txt' is now under /tmp/unpack/file1.txt
+    # and so on...
+
+    # we can now use the file 'file1.txt'
+    # and so on...
+    # and so on...
+
+    # we can now use the file 'file1.txt'
+    # and so on...
+    # and so on...
+
+    # the file 'file1.txt' is now under /tmp/unpack/file1.txt
+    # and so on...
+
+    # we can now use the file 'file1.txt'
+    # and so on...
+    # and so on...
+
+    # the file 'file1.txt' is now under /tmp/unpack/file1.txt
+    # and so on...
+
+    # we can now use the file 'file1.txt'
+    # and so on...
